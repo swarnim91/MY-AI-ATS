@@ -17,22 +17,26 @@ def get_gemini_response(input,pdf_content,prompt):
     response=model.generate_content([input,pdf_content[0],prompt])
     return response.text
 
+from pdf2image import exceptions
+
 def input_pdf_setup(uploaded_file):
     if uploaded_file is not None:
-        ## Convert the PDF to image
-        images=pdf2image.convert_from_bytes(uploaded_file.read())
+        try:
+            images = pdf2image.convert_from_bytes(uploaded_file.read())
+        except exceptions.PDFInfoNotInstalledError:
+            st.error("❌ Poppler is not installed. Please add 'poppler-utils' in packages.txt for Streamlit Cloud.")
+            return None
+        except Exception as e:
+            st.error(f"⚠ Error while processing PDF: {e}")
+            return None
 
-        first_page=images[0]
-        # Convert to bytes
+        first_page = images[0]
         img_byte_arr = io.BytesIO()
         first_page.save(img_byte_arr, format='JPEG')
         img_byte_arr = img_byte_arr.getvalue()
 
         pdf_parts = [
-            {
-                "mime_type": "image/jpeg",
-                "data": base64.b64encode(img_byte_arr).decode()  # encode to base64
-            }
+            {"mime_type": "image/jpeg", "data": base64.b64encode(img_byte_arr).decode()}
         ]
         return pdf_parts
     else:
@@ -88,5 +92,6 @@ elif submit3:
         st.write(response)
     else:
         st.write("Please uplaod the resume")
+
 
     
